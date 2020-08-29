@@ -1,12 +1,25 @@
 # import the necessary packages
 import cv2
 
+# used for accessing url to download files
+import urllib.request as urlreq
+
 # used to access local directory
 import os
 
 # used to plot our images
 import matplotlib.pyplot as plt
 import numpy as np
+
+def shape_to_np(shape, dtype="int"):
+    	# initialize the list of (x, y)-coordinates
+	coords = np.zeros((68, 2), dtype=dtype)
+	# loop over the 68 facial landmarks and convert them
+	# to a 2-tuple of (x, y)-coordinates
+	for i in range(0, 68):
+		coords[i] = (shape.part(i).x, shape.part(i).y)
+	# return the list of (x, y)-coordinates
+	return coords
 
 faceDet = cv2.CascadeClassifier(
     "./haar_models/haarcascade_frontalface_default.xml")
@@ -17,10 +30,27 @@ faceDet_three = cv2.CascadeClassifier(
 faceDet_four = cv2.CascadeClassifier(
     "./haar_models/haarcascade_frontalface_alt_tree.xml")
 
+# save facial landmark detection model's url in LBFmodel_url variable
+LBFmodel_url = "https://github.com/kurnianggoro/GSOC2017/raw/master/data/lbfmodel.yaml"
+
+# save facial landmark detection model's name as LBFmodel
+LBFmodel = "lbfmodel.yaml"
+LBFmodel_file = "data/" + LBFmodel
+
+# check if file is in working directory
+if (LBFmodel in os.listdir(os.curdir)):
+    print("File exists")
+else:
+    # download picture from url and save locally as lbfmodel.yaml, < 54MB
+    urlreq.urlretrieve(LBFmodel_url, LBFmodel)
+    print("File downloaded")
+
+# create an instance of the Facial landmark Detector with the model
+landmark_detector  = cv2.face.createFacemarkLBF()
+landmark_detector.loadModel(LBFmodel)
+
 cv2.namedWindow("preview")
 capture = cv2.VideoCapture(0)
-# capture.set(cv2.CAP_PROP_FRAME_WIDTH, 500)
-# capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
 
 while True:
     ret, frame = capture.read()
@@ -40,8 +70,6 @@ while True:
         gray_image, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
     # Go over detected faces, stop at first detected face, return empty if no face.
 
-    if len(faces) == 1:
-        facefeatures = faces
     if len(face_two) == 1:
         facefeatures = face_two
     elif len(face_three) == 1:
@@ -49,24 +77,33 @@ while True:
     elif len(face_four) == 1:
         facefeatures = face_four
     else:
-        facefeatures = ""
-        print("No Faces Detected")
+        facefeatures = faces
 
     # Print coordinates of detected faces
     # print("Faces:\n", facefeatures)
 
-	# # loop over the face detections
+    faceCount = 1
     for (x, y, w, h) in facefeatures:
         cropped_gray_face = gray_image[y:y + h, x:x + w]
         cropped_original_face = image[y:y + h, x:x + w]
 
+        # Detect landmarks on "image_gray"
+        _, landmarks = landmark_detector.fit(gray_image, np.array(facefeatures))
+
 		# show the face number
-        cv2.putText(image, "Face #{}".format(x), (x - 10, y - 10),
+        cv2.putText(image, "Face #{}".format(faceCount), (x - 10, y - 10),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         cv2.rectangle(image,(x, y),(x + w,y + h),(0, 255, 0), 2)
+        ++faceCount
 
-    cv2.imshow('Detected Faces', image)
+        for landmark in landmarks:
+            for x,y in landmark[0]:
+                # display landmarks on "image_cropped"
+                # with white colour in BGR and thickness 1
+                cv2.circle(image, (x, y), 1, (255, 255, 255), 1)
+
+    cv2.imshow('Face Features Detection', image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
