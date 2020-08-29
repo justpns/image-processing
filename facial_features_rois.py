@@ -30,6 +30,14 @@ faceDet_three = cv2.CascadeClassifier(
 faceDet_four = cv2.CascadeClassifier(
     "./haar_models/haarcascade_frontalface_alt_tree.xml")
 
+eyeDet = cv2.CascadeClassifier("./haar_models/haarcascade_eye.xml")
+open_eye_Det = cv2.CascadeClassifier("./haar_models/haarcascade_eye_tree_eyeglasses.xml")
+left_eyeDet = cv2.CascadeClassifier("./haar_models/haarcascade_lefteye_2splits.xml")
+right_eyeDet = cv2.CascadeClassifier("./haar_models/haarcascade_righteye_2splits.xml")
+
+mouthDet = cv2.CascadeClassifier("./haar_models/haarcascade_mcs_mouth.xml")
+mouth_smilingDet = cv2.CascadeClassifier("./haar_models/haarcascade_smile.xml")
+
 # save facial landmark detection model's url in LBFmodel_url variable
 LBFmodel_url = "https://github.com/kurnianggoro/GSOC2017/raw/master/data/lbfmodel.yaml"
 
@@ -87,21 +95,91 @@ while True:
         cropped_gray_face = gray_image[y:y + h, x:x + w]
         cropped_original_face = image[y:y + h, x:x + w]
 
-        # Detect landmarks on "image_gray"
-        _, landmarks = landmark_detector.fit(gray_image, np.array(facefeatures))
-
-		# show the face number
+        # show the face number
         cv2.putText(image, "Face #{}".format(faceCount), (x - 10, y - 10),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         cv2.rectangle(image,(x, y),(x + w,y + h),(0, 255, 0), 2)
         ++faceCount
 
+        # Eyes detection
+        # check first if eyes are open (with glasses taking into account)
+
+        eyes = eyeDet.detectMultiScale(cropped_gray_face, 1.3, 3)
+
+        open_eyes_glasses = open_eye_Det.detectMultiScale(
+            cropped_gray_face,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(30, 30),
+            flags = cv2.CASCADE_SCALE_IMAGE
+        )
+
+        if len(open_eyes_glasses) == 2:
+            for (ex, ey, ew, eh) in open_eyes_glasses:
+                cv2.rectangle(cropped_original_face, (ex,ey), (ex + ew, ey + eh), (255, 0, 0), 2)
+        else:
+            first_half_face = frame[y:y + h, x + int(w/2):x + w]
+            first_half_gray_face = cropped_original_face[y:y + h, x + int(w/2):x + w]
+
+            second_half_face = frame[y:y + h, x:x + int(w/2)]
+            second_half_gray_face = cropped_original_face[y:y + h, x:x + int(w/2)]
+
+            # Detect the left eye
+            left_eye = left_eyeDet.detectMultiScale(
+                first_half_gray_face,
+                scaleFactor=1.1,
+                minNeighbors=5,
+                minSize=(30, 30),
+                flags = cv2.CASCADE_SCALE_IMAGE
+            )
+
+            # Detect the right eye
+            right_eye = right_eyeDet.detectMultiScale(
+                second_half_gray_face,
+                scaleFactor=1.1,
+                minNeighbors=5,
+                minSize=(30, 30),
+                flags = cv2.CASCADE_SCALE_IMAGE
+            )
+
+        # Mouth detection
+        # check first if mouth is smiling
+        
+        smiling_mouth = mouth_smilingDet.detectMultiScale(
+            cropped_gray_face,
+            scaleFactor=1.7,
+            minNeighbors=5,
+            minSize=(30, 30),
+            flags = cv2.CASCADE_SCALE_IMAGE
+        )
+        
+        if len(smiling_mouth) == 2:
+            for (mx, my, mw, mh) in smiling_mouth:
+                color = (0,0,255)
+                cv2.rectangle(cropped_original_face, (mx, my), (mx + mw, my + mh), color, 2)
+        else:
+            
+            mouths = mouthDet.detectMultiScale(
+                cropped_gray_face,
+                scaleFactor=1.7,
+                minNeighbors=5,
+                minSize=(30, 30),
+                flags = cv2.CASCADE_SCALE_IMAGE
+            )
+            
+            for (mx, my, mw, mh) in mouths:
+                color = (0,0,255)
+                cv2.rectangle(image, (mx, my), (mx + mw, my + mh), color, 2)
+        
+         # Detect landmarks on "image_gray"
+        _, landmarks = landmark_detector.fit(gray_image, np.array(facefeatures))
+
         for landmark in landmarks:
             for x,y in landmark[0]:
                 # display landmarks on "image_cropped"
                 # with white colour in BGR and thickness 1
-                cv2.circle(image, (x, y), 1, (255, 255, 255), 1)
+                cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
 
     cv2.imshow('Face Features Detection', image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
