@@ -17,23 +17,28 @@ mouth_smilingDet = cv2.CascadeClassifier("./models/haarcascade_smile.xml")
 
 cv2.namedWindow("preview")
 capture = cv2.VideoCapture(0)
-capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1366)
-capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
 
 while True:
     ret, frame = capture.read()
     image = frame.copy()
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    faces = faceDet.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
-    # face_two = faceDet_two.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
-    # face_three = faceDet_three.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
-    # face_four = faceDet_four.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
-    #Go over detected faces, stop at first detected face, return empty if no face.
-        
-    if len(face) == 1:
-        facefeatures = face
-    elif len(face_two) == 1:
+
+    faces = faceDet.detectMultiScale(
+        gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
+
+    face_two = faceDet_two.detectMultiScale(
+        gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
+
+    face_three = faceDet_three.detectMultiScale(
+        gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
+
+    face_four = faceDet_four.detectMultiScale(
+        gray, scaleFactor=1.2, minNeighbors=5, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE)
+    # Go over detected faces, stop at first detected face, return empty if no face.
+
+    if len(faces) == 1:
+        facefeatures = faces
+    if len(face_two) == 1:
         facefeatures = face_two
     elif len(face_three) == 1:
         facefeatures = face_three
@@ -41,6 +46,7 @@ while True:
         facefeatures = face_four
     else:
         facefeatures = ""
+        print("No Faces Detected")
 
     # Print coordinates of detected faces
     print("Faces:\n", faces)
